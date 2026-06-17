@@ -554,16 +554,30 @@ def _normalize_org_name(org: str) -> str:
 
     Returns:
         The extracted organization name.
+
+    Raises:
+        ValueError: If a GitHub host is supplied without an
+            organization segment (e.g. ``https://github.com``).
     """
     candidate = org.strip()
     # urlparse only populates ``netloc`` when a scheme (or leading
-    # ``//``) is present, so add one for scheme-less input.
-    parse_target = candidate if "://" in candidate else f"//{candidate}"
-    hostname = (urlparse(parse_target).hostname or "").lower()
+    # ``//``) is present, so add one for scheme-less input. Values that
+    # already carry a scheme or a protocol-relative ``//`` prefix are
+    # parsed as-is to avoid producing a malformed ``////`` prefix.
+    if "://" in candidate or candidate.startswith("//"):
+        parse_target = candidate
+    else:
+        parse_target = f"//{candidate}"
+    parsed = urlparse(parse_target)
+    hostname = (parsed.hostname or "").lower()
 
     if hostname in ("github.com", "www.github.com"):
-        path = urlparse(parse_target).path.strip("/")
-        return path.split("/")[0] if path else ""
+        path = parsed.path.strip("/")
+        if not path:
+            raise ValueError(
+                f"No organization found in GitHub URL: {org!r}"
+            )
+        return path.split("/")[0]
 
     return candidate.strip("/")
 
@@ -586,7 +600,11 @@ async def _scan_organization(
 ) -> None:
     """Scan organization for PRs with markdown table issues."""
     # Accept a bare org name or a GitHub URL/host-qualified value.
-    org = _normalize_org_name(org)
+    try:
+        org = _normalize_org_name(org)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1) from e
 
     if not quiet:
         console.print(f"🔍 Scanning organization: {org}")

@@ -22,6 +22,7 @@ from markdown_table_fixer.cli import _normalize_org_name
         ("  myorg  ", "myorg"),
         # Genuine GitHub URLs/hosts have their prefix stripped.
         ("github.com/myorg", "myorg"),
+        ("//github.com/myorg", "myorg"),
         ("https://github.com/myorg", "myorg"),
         ("http://github.com/myorg", "myorg"),
         ("https://www.github.com/myorg", "myorg"),
@@ -49,3 +50,18 @@ def test_normalize_org_name_rejects_lookalike_hosts(supplied: str) -> None:
     # The value is returned unchanged (only leading/trailing slashes
     # stripped); no GitHub prefix stripping is applied.
     assert _normalize_org_name(supplied) == supplied.strip("/")
+
+
+@pytest.mark.parametrize(
+    "supplied",
+    [
+        "https://github.com",
+        "https://github.com/",
+        "github.com",
+        "//www.github.com/",
+    ],
+)
+def test_normalize_org_name_requires_org_segment(supplied: str) -> None:
+    """A GitHub host without an org segment fails fast."""
+    with pytest.raises(ValueError, match="No organization found"):
+        _normalize_org_name(supplied)
