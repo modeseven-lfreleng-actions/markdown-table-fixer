@@ -847,8 +847,6 @@ def _detect_max_line_length(scan_path: Path) -> int:
     Returns:
         Configured line length, or 80 if not configured
     """
-    import json
-
     import yaml
 
     # Look for markdownlint config files in the scan path and parent directories

@@ -108,8 +108,6 @@ class PRFixer:
                 elif config_file.endswith((".json", ".jsonc", "rc")):
                     if config_file.endswith(".jsonc"):
                         # Remove comments from JSONC
-                        import re
-
                         content = re.sub(
                             r"//.*$", "", content, flags=re.MULTILINE
                         )
@@ -587,7 +585,6 @@ class PRFixer:
                         sanitized_stderr = self._sanitize_message(
                             e.stderr or ""
                         )
-                        sanitized_error = self._sanitize_message(str(e))
                         error_msg = f"Failed to sync with base branch using {sync_strategy}: {sanitized_stderr}"
                         self.logger.error(error_msg)
                         raise RuntimeError(error_msg) from e
@@ -1379,7 +1376,8 @@ class PRFixer:
             [
                 "---",
                 "*This fix was automatically applied by "
-                "[markdown-table-fixer](https://github.com/lfreleng-actions/markdown-table-fixer)*",
+                + "[markdown-table-fixer]"
+                + "(https://github.com/lfreleng-actions/markdown-table-fixer)*",
             ]
         )
 
