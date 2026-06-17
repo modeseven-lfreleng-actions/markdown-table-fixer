@@ -212,6 +212,7 @@ def no_external_network(
         monkeypatch.setattr(httpx, "Client", no_network)
         monkeypatch.setattr(httpx, "AsyncClient", no_network)
     except ImportError:
+        # httpx is optional; nothing to patch when it is not installed.
         pass
 
     try:
@@ -223,6 +224,7 @@ def no_external_network(
         monkeypatch.setattr(requests, "delete", no_network)
         monkeypatch.setattr(requests, "patch", no_network)
     except ImportError:
+        # requests is optional; nothing to patch when it is not installed.
         pass
 
 
