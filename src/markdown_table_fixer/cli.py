@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dependamerge import get_default_workers
 from rich.console import Console
@@ -537,6 +538,36 @@ async def _fix_single_pr(
         raise typer.Exit(1) from e
 
 
+def _normalize_org_name(org: str) -> str:
+    """Extract a bare organization name from user-supplied input.
+
+    Accepts a bare org name (``myorg``), a host-qualified path
+    (``github.com/myorg``), or a full URL
+    (``https://github.com/myorg``). A GitHub URL prefix is only
+    stripped when the parsed hostname is exactly ``github.com`` (or
+    ``www.github.com``); this avoids the incomplete-substring check
+    where ``github.com`` could appear at an arbitrary position in a
+    hostile value such as ``evil-github.com.example``.
+
+    Args:
+        org: Raw organization value provided on the command line.
+
+    Returns:
+        The extracted organization name.
+    """
+    candidate = org.strip()
+    # urlparse only populates ``netloc`` when a scheme (or leading
+    # ``//``) is present, so add one for scheme-less input.
+    parse_target = candidate if "://" in candidate else f"//{candidate}"
+    hostname = (urlparse(parse_target).hostname or "").lower()
+
+    if hostname in ("github.com", "www.github.com"):
+        path = urlparse(parse_target).path.strip("/")
+        return path.split("/")[0] if path else ""
+
+    return candidate.strip("/")
+
+
 async def _scan_organization(
     org: str,
     token: str,
@@ -554,9 +585,8 @@ async def _scan_organization(
     workers: int = 8,
 ) -> None:
     """Scan organization for PRs with markdown table issues."""
-    # Remove github.com prefix if present
-    if "github.com" in org:
-        org = org.split("github.com/")[-1].strip("/")
+    # Accept a bare org name or a GitHub URL/host-qualified value.
+    org = _normalize_org_name(org)
 
     if not quiet:
         console.print(f"🔍 Scanning organization: {org}")
