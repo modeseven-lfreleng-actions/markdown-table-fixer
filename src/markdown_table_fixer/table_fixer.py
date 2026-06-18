@@ -19,9 +19,9 @@ from .table_validator import TableValidator
 
 # Inclusive ``(low, high)`` code-point ranges used to detect emoji (and
 # emoji-like wide characters) in table cells. The ranges are intentionally
-# adjacent but never overlapping; in particular the U+1F252-U+1F2FF gap
-# between the first two ranges is preserved so the matched set stays
-# identical to the historical implementation (do not merge those ranges).
+# disjoint: the gaps between them (e.g. U+1F252-U+1F2FF, U+1F650-U+1F67F)
+# are preserved so the matched set stays identical to the historical
+# implementation. Do not merge or widen the ranges to close those gaps.
 #
 # Membership is tested with explicit integer comparisons rather than a
 # regex character class. A character class containing several astral-plane
