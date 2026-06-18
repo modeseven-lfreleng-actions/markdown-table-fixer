@@ -45,6 +45,10 @@ def test_normalize_org_name_valid(supplied: str, expected: str) -> None:
         "github.com.attacker.test/victim",
         # Surrounding whitespace is stripped before the host check.
         "  notgithub.com/foo  ",
+        # Path-based attacks: ``github.com`` appears in the path rather
+        # than the host, so it must not trigger prefix stripping.
+        "attacker.com/github.com/fake-org",
+        "example.com/github.com/org",
     ],
 )
 def test_normalize_org_name_rejects_lookalike_hosts(supplied: str) -> None:
@@ -68,3 +72,29 @@ def test_normalize_org_name_requires_org_segment(supplied: str) -> None:
     """A GitHub host without an org segment fails fast."""
     with pytest.raises(ValueError, match="No organization found"):
         _normalize_org_name(supplied)
+
+
+@pytest.mark.parametrize(
+    ("supplied", "expected"),
+    [
+        # Empty and whitespace-only input parses to an empty hostname,
+        # so no prefix stripping applies and the result is empty.
+        ("", ""),
+        ("   ", ""),
+        # Slash-only input also yields an empty hostname and an empty
+        # result after stripping.
+        ("/", ""),
+        ("//", ""),
+        ("///", ""),
+    ],
+)
+def test_normalize_org_name_empty_or_malformed(
+    supplied: str, expected: str
+) -> None:
+    """Empty or malformed input yields an empty org name, not an error.
+
+    These inputs cause ``urlparse`` to return an empty hostname, which
+    must be handled gracefully (the github.com branch is skipped) rather
+    than raising or mis-detecting a GitHub URL.
+    """
+    assert _normalize_org_name(supplied) == expected
